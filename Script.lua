@@ -1,4 +1,4 @@
-local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/shlexware/Orion/main/source')))()
+local OrionLib = loadstring(game:HttpGet('https://raw.githubusercontent.com/shlexware/Orion/main/source'))()
 local Window = OrionLib:MakeWindow({Name = "My First Hub", HidePremium = false, SaveConfig = true, ConfigFolder = "OrionTest"})
 
 -- Tạo 1 Tab chính
@@ -8,7 +8,7 @@ local MainTab = Window:MakeTab({
 	PremiumOnly = false
 })
 
--- Tạo một nút bấm (Button)
+-- Tạo nút bấm tăng tốc độ
 MainTab:AddButton({
 	Name = "Tăng tốc độ chạy",
 	Callback = function()
