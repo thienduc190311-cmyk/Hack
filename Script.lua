@@ -34,10 +34,25 @@ local Settings = {
     TeamCheck = true,
     WallCheck = true,
     FOV = 150,
+    ShowFOV = true,
     Smoothness = 0.2 -- Độ mượt khi nhắm (0.1 -> 1)
 }
 
--- Tạo GUI UI
+-- 1. Tạo Vòng Tròn FOV ở Tâm Màn Hình (Sử dụng Drawing API)
+local FOVCircle = Drawing.new("Circle")
+FOVCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+FOVCircle.Radius = Settings.FOV
+FOVCircle.Filled = false
+FOVCircle.Color = Color3.fromRGB(0, 255, 150)
+FOVCircle.Thickness = 1.5
+FOVCircle.Visible = Settings.ShowFOV
+
+-- Cập nhật vị trí tâm vòng tròn khi đổi kích thước màn hình
+Camera:GetPropertyChangedSignal("ViewportSize"):Connect(function()
+    FOVCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+end)
+
+-- 2. Tạo GUI UI
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "AimbotGui"
 ScreenGui.ResetOnSpawn = false
@@ -45,33 +60,58 @@ ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 220, 0, 260)
+MainFrame.Size = UDim2.new(0, 230, 0, 310)
 MainFrame.Position = UDim2.new(0.05, 0, 0.3, 0)
-MainFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
 MainFrame.Draggable = true
+MainFrame.ClipsDescendants = true
 MainFrame.Parent = ScreenGui
 
 local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1, 0, 0, 30)
+Title.Size = UDim2.new(0.75, 0, 0, 30)
 Title.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-Title.Text = "Aimbot Settings (Bật/Tắt: K)"
+Title.Text = "  Aimbot Settings"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.TextSize = 13
+Title.TextXAlignment = Enum.TextXAlignment.Left
 Title.Font = Enum.Font.SourceSansBold
 Title.Parent = MainFrame
 
--- Hàm tiện ích tạo nút
+-- Nút Thu Gọn / Mở Rộng GUI
+local MinimizeBtn = Instance.new("TextButton")
+MinimizeBtn.Size = UDim2.new(0.25, 0, 0, 30)
+MinimizeBtn.Position = UDim2.new(0.75, 0, 0, 0)
+MinimizeBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+MinimizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+MinimizeBtn.Text = "-"
+MinimizeBtn.Font = Enum.Font.SourceSansBold
+MinimizeBtn.TextSize = 16
+MinimizeBtn.Parent = MainFrame
+
+local isMinimized = false
+MinimizeBtn.MouseButton1Click:Connect(function()
+    isMinimized = not isMinimized
+    if isMinimized then
+        MainFrame:TweenSize(UDim2.new(0, 230, 0, 30), Enum.EasingDirection.Out, Enum.EasingStyle.Quart, 0.2, true)
+        MinimizeBtn.Text = "+"
+    else
+        MainFrame:TweenSize(UDim2.new(0, 230, 0, 310), Enum.EasingDirection.Out, Enum.EasingStyle.Quart, 0.2, true)
+        MinimizeBtn.Text = "-"
+    end
+end)
+
+-- Hàm tiện ích tạo nút bấm
 local function CreateButton(text, pos, callback)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0.9, 0, 0, 30)
+    btn.Size = UDim2.new(0.9, 0, 0, 28)
     btn.Position = pos
     btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
     btn.TextColor3 = Color3.fromRGB(255, 255, 255)
     btn.Text = text
     btn.Font = Enum.Font.SourceSans
-    btn.TextSize = 14
+    btn.TextSize = 13
     btn.Parent = MainFrame
     btn.MouseButton1Click:Connect(function()
         callback(btn)
@@ -79,15 +119,14 @@ local function CreateButton(text, pos, callback)
     return btn
 end
 
--- 1. Nút Bật/Tắt Aimbot
-local ToggleBtn = CreateButton("Aimbot: OFF", UDim2.new(0.05, 0, 0.15, 0), function(btn)
+-- Các nút chức năng
+CreateButton("Aimbot: OFF", UDim2.new(0.05, 0, 0.12, 0), function(btn)
     Settings.Enabled = not Settings.Enabled
     btn.Text = Settings.Enabled and "Aimbot: ON" or "Aimbot: OFF"
     btn.BackgroundColor3 = Settings.Enabled and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(50, 50, 50)
 end)
 
--- 2. Nút Chọn Vị Trí Aim (Đầu / Thân / Chân)
-local PartBtn = CreateButton("Vị Trí: Đầu", UDim2.new(0.05, 0, 0.3, 0), function(btn)
+CreateButton("Vị Trí: Đầu", UDim2.new(0.05, 0, 0.23, 0), function(btn)
     if Settings.TargetPart == "Head" then
         Settings.TargetPart = "HumanoidRootPart"
         btn.Text = "Vị Trí: Thân"
@@ -100,26 +139,72 @@ local PartBtn = CreateButton("Vị Trí: Đầu", UDim2.new(0.05, 0, 0.3, 0), fu
     end
 end)
 
--- 3. Nút Team Check
-local TeamBtn = CreateButton("Team Check: ON", UDim2.new(0.05, 0, 0.45, 0), function(btn)
+CreateButton("Team Check: ON", UDim2.new(0.05, 0, 0.34, 0), function(btn)
     Settings.TeamCheck = not Settings.TeamCheck
     btn.Text = Settings.TeamCheck and "Team Check: ON" or "Team Check: OFF"
 end)
 
--- 4. Nút Wall Check (Nhận diện vật chắn)
-local WallBtn = CreateButton("Wall Check: ON", UDim2.new(0.05, 0, 0.6, 0), function(btn)
+CreateButton("Wall Check: ON", UDim2.new(0.05, 0, 0.45, 0), function(btn)
     Settings.WallCheck = not Settings.WallCheck
     btn.Text = Settings.WallCheck and "Wall Check: ON" or "Wall Check: OFF"
 end)
 
--- Phím tắt bật/tắt ẩn hiện GUI (Phím K)
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if not gameProcessed and input.KeyCode == Enum.KeyCode.K then
-        MainFrame.Visible = not MainFrame.Visible
+CreateButton("Hiện Vòng FOV: ON", UDim2.new(0.05, 0, 0.56, 0), function(btn)
+    Settings.ShowFOV = not Settings.ShowFOV
+    FOVCircle.Visible = Settings.ShowFOV
+    btn.Text = Settings.ShowFOV and "Hiện Vòng FOV: ON" or "Hiện Vòng FOV: OFF"
+end)
+
+-- Nút chỉnh kích thước vòng FOV (+ / -)
+local FOVControlFrame = Instance.new("Frame")
+FOVControlFrame.Size = UDim2.new(0.9, 0, 0, 28)
+FOVControlFrame.Position = UDim2.new(0.05, 0, 0.67, 0)
+FOVControlFrame.BackgroundTransparency = 1
+FOVControlFrame.Parent = MainFrame
+
+local FOVMinus = Instance.new("TextButton")
+FOVMinus.Size = UDim2.new(0.2, 0, 1, 0)
+FOVMinus.Position = UDim2.new(0, 0, 0, 0)
+FOVMinus.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+FOVMinus.Text = "-"
+FOVMinus.TextColor3 = Color3.fromRGB(255, 255, 255)
+FOVMinus.Parent = FOVControlFrame
+
+local FOVLabel = Instance.new("TextLabel")
+FOVLabel.Size = UDim2.new(0.6, 0, 1, 0)
+FOVLabel.Position = UDim2.new(0.2, 0, 0, 0)
+FOVLabel.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+FOVLabel.Text = "Size FOV: " .. Settings.FOV
+FOVLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+FOVLabel.Font = Enum.Font.SourceSans
+FOVLabel.TextSize = 12
+FOVLabel.Parent = FOVControlFrame
+
+local FOVPlus = Instance.new("TextButton")
+FOVPlus.Size = UDim2.new(0.2, 0, 1, 0)
+FOVPlus.Position = UDim2.new(0.8, 0, 0, 0)
+FOVPlus.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+FOVPlus.Text = "+"
+FOVPlus.TextColor3 = Color3.fromRGB(255, 255, 255)
+FOVPlus.Parent = FOVControlFrame
+
+FOVMinus.MouseButton1Click:Connect(function()
+    if Settings.FOV > 30 then
+        Settings.FOV = Settings.FOV - 20
+        FOVCircle.Radius = Settings.FOV
+        FOVLabel.Text = "Size FOV: " .. Settings.FOV
     end
 end)
 
--- Hàm kiểm tra vật chắn (Wall Check)
+FOVPlus.MouseButton1Click:Connect(function()
+    if Settings.FOV < 500 then
+        Settings.FOV = Settings.FOV + 20
+        FOVCircle.Radius = Settings.FOV
+        FOVLabel.Text = "Size FOV: " .. Settings.FOV
+    end
+end)
+
+-- 3. Logic Kiểm Tra Vật Chắn (Wall Check)
 local function IsVisible(targetPart, targetCharacter)
     if not Settings.WallCheck then return true end
     
@@ -129,34 +214,29 @@ local function IsVisible(targetPart, targetCharacter)
 
     local raycastParams = RaycastParams.new()
     raycastParams.FilterType = Enum.RaycastFilterType.Exclude
-    -- Bỏ qua bản thân và nhân vật mục tiêu để kiểm tra xem có tường/vật cản ở giữa không
     raycastParams.FilterDescendantsInstances = {LocalPlayer.Character, targetCharacter}
     raycastParams.IgnoreWater = true
 
     local result = workspace:Raycast(origin, direction, raycastParams)
-    -- Nếu không chạm vào gì ở giữa -> Không bị chắn
     return result == nil
 end
 
--- Hàm tìm mục tiêu gần tâm màn hình nhất
+-- 4. Logic Tìm Mục Tiêu
 local function GetClosestTarget()
     local closestPlayer = nil
     local shortestDistance = Settings.FOV
 
     for _, player in pairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Humanoid") then
-            -- Kiểm tra máu
             if player.Character.Humanoid.Health > 0 then
-                -- Kiểm tra Team Check
                 if not Settings.TeamCheck or player.Team ~= LocalPlayer.Team then
                     local targetPart = player.Character:FindFirstChild(Settings.TargetPart)
                     if targetPart then
                         local screenPos, onScreen = Camera:WorldToViewportPoint(targetPart.Position)
                         if onScreen then
-                            local mousePos = UserInputService:GetMouseLocation()
-                            local distance = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
+                            local screenCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+                            local distance = (Vector2.new(screenPos.X, screenPos.Y) - screenCenter).Magnitude
 
-                            -- Kiểm tra khoảng cách nằm trong FOV và không bị tường chắn
                             if distance < shortestDistance then
                                 if IsVisible(targetPart, player.Character) then
                                     shortestDistance = distance
@@ -172,12 +252,11 @@ local function GetClosestTarget()
     return closestPlayer
 end
 
--- Vòng lặp Aimbot (Chạy mỗi frame)
+-- 5. Vòng Lặp Aimbot
 RunService.RenderStepped:Connect(function()
     if Settings.Enabled then
         local target = GetClosestTarget()
         if target then
-            -- Nhắm mượt (Interpolation) vào mục tiêu
             local targetCFrame = CFrame.new(Camera.CFrame.Position, target.Position)
             Camera.CFrame = Camera.CFrame:Lerp(targetCFrame, Settings.Smoothness)
         end
