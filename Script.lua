@@ -431,3 +431,338 @@ end
 
    end,
 })
+MainTab:CreateButton({
+   Name = "mp3 script",
+   Callback = function()
+       -- Delta Advanced MP3 Player Script with Playlist, Seek, Loop & Minimize
+local Players = game:GetService("Players")
+local CoreGui = game:GetService("CoreGui")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+
+-- Cleanup UI cũ
+if CoreGui:FindFirstChild("AdvancedMP3Player") then
+    CoreGui.AdvancedMP3Player:Destroy()
+end
+
+-- Sound Instance
+local soundInstance = Instance.new("Sound")
+soundInstance.Name = "CustomMusicPlayer"
+soundInstance.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+-- Biến quản lý danh sách phát (Playlist)
+local playlist = {
+    {name = "khatri.mp3", url = "https://cdn.discordapp.com/attachments/1542523228986015816/1542523331067121715/vidgap-com-khatri_--music.mp3"}
+}
+local currentPlayingFile = ""
+
+-- Tạo ScreenGui
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "AdvancedMP3Player"
+ScreenGui.Parent = CoreGui
+
+-- Main Frame
+local Frame = Instance.new("Frame")
+Frame.Size = UDim2.new(0, 360, 0, 420)
+Frame.Position = UDim2.new(0.05, 0, 0.25, 0)
+Frame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+Frame.Active = true
+Frame.Draggable = true
+Frame.Parent = ScreenGui
+
+local UICorner = Instance.new("UICorner", Frame)
+UICorner.CornerRadius = UDim.new(0, 8)
+
+-- Title Bar
+local TitleBar = Instance.new("Frame")
+TitleBar.Size = UDim2.new(1, 0, 0, 35)
+TitleBar.BackgroundColor3 = Color3.fromRGB(30, 30, 38)
+TitleBar.Parent = Frame
+Instance.new("UICorner", TitleBar).CornerRadius = UDim.new(0, 8)
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(0.8, 0, 1, 0)
+Title.Position = UDim2.new(0.03, 0, 0, 0)
+Title.Text = "🎵 DELTA MP3 PLAYER"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Font = Enum.Font.SourceSansBold
+Title.TextSize = 14
+Title.BackgroundTransparency = 1
+Title.Parent = TitleBar
+
+-- Nút Thu Gọn / Mở Rộng (-)
+local MinBtn = Instance.new("TextButton")
+MinBtn.Size = UDim2.new(0, 30, 0, 25)
+MinBtn.Position = UDim2.new(0.88, 0, 0.15, 0)
+MinBtn.Text = "-"
+MinBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+MinBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+MinBtn.Font = Enum.Font.SourceSansBold
+MinBtn.Parent = TitleBar
+Instance.new("UICorner", MinBtn)
+
+-- Nội dung chính (để ẩn đi khi thu gọn)
+local ContentHolder = Instance.new("ScrollingFrame")
+ContentHolder.Size = UDim2.new(1, 0, 1, -35)
+ContentHolder.Position = UDim2.new(0, 0, 0, 35)
+ContentHolder.BackgroundTransparency = 1
+ContentHolder.CanvasSize = UDim2.new(0, 0, 1.2, 0)
+ContentHolder.ScrollBarThickness = 4
+ContentHolder.Parent = Frame
+
+-- Input Link URL
+local UrlBox = Instance.new("TextBox")
+UrlBox.Size = UDim2.new(0.9, 0, 0, 30)
+UrlBox.Position = UDim2.new(0.05, 0, 0.02, 0)
+UrlBox.PlaceholderText = "Dán Direct MP3 URL..."
+UrlBox.Text = ""
+UrlBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+UrlBox.BackgroundColor3 = Color3.fromRGB(35, 35, 42)
+UrlBox.Parent = ContentHolder
+Instance.new("UICorner", UrlBox)
+
+-- Input Tên File
+local NameBox = Instance.new("TextBox")
+NameBox.Size = UDim2.new(0.9, 0, 0, 30)
+NameBox.Position = UDim2.new(0.05, 0, 0.1, 0)
+NameBox.PlaceholderText = "Tên file (VD: nhac.mp3)..."
+NameBox.Text = "song.mp3"
+NameBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+NameBox.BackgroundColor3 = Color3.fromRGB(35, 35, 42)
+NameBox.Parent = ContentHolder
+Instance.new("UICorner", NameBox)
+
+-- Nút Tải Về
+local DownloadBtn = Instance.new("TextButton")
+DownloadBtn.Size = UDim2.new(0.9, 0, 0, 30)
+DownloadBtn.Position = UDim2.new(0.05, 0, 0.18, 0)
+DownloadBtn.Text = "📥 TẢI & THÊM VÀO PLAYLIST"
+DownloadBtn.BackgroundColor3 = Color3.fromRGB(230, 126, 34)
+DownloadBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+DownloadBtn.Font = Enum.Font.SourceSansBold
+DownloadBtn.Parent = ContentHolder
+Instance.new("UICorner", DownloadBtn)
+
+-- Hiển thị bài đang phát
+local NowPlaying = Instance.new("TextLabel")
+NowPlaying.Size = UDim2.new(0.9, 0, 0, 25)
+NowPlaying.Position = UDim2.new(0.05, 0, 0.26, 0)
+NowPlaying.Text = "Đang chọn: Chưa có"
+NowPlaying.TextColor3 = Color3.fromRGB(46, 204, 113)
+NowPlaying.TextXAlignment = Enum.TextXAlignment.Left
+NowPlaying.Font = Enum.Font.SourceSansItalic
+NowPlaying.BackgroundTransparency = 1
+NowPlaying.Parent = ContentHolder
+
+-- Thanh Tua Nhạc (Seek Bar Container)
+local SeekBarBg = Instance.new("Frame")
+SeekBarBg.Size = UDim2.new(0.9, 0, 0, 12)
+SeekBarBg.Position = UDim2.new(0.05, 0, 0.32, 0)
+SeekBarBg.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+SeekBarBg.Parent = ContentHolder
+Instance.new("UICorner", SeekBarBg).CornerRadius = UDim.new(1, 0)
+
+local SeekBarFill = Instance.new("Frame")
+SeekBarFill.Size = UDim2.new(0, 0, 1, 0)
+SeekBarFill.BackgroundColor3 = Color3.fromRGB(52, 152, 219)
+SeekBarFill.Parent = SeekBarBg
+Instance.new("UICorner", SeekBarFill).CornerRadius = UDim.new(1, 0)
+
+-- Text thời gian (00:00 / 03:30)
+local TimeLabel = Instance.new("TextLabel")
+TimeLabel.Size = UDim2.new(0.9, 0, 0, 20)
+TimeLabel.Position = UDim2.new(0.05, 0, 0.36, 0)
+TimeLabel.Text = "00:00 / 00:00"
+TimeLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
+TimeLabel.BackgroundTransparency = 1
+TimeLabel.Font = Enum.Font.SourceSans
+TimeLabel.Parent = ContentHolder
+
+-- Các nút điều khiển (Play, Pause, Loop)
+local PlayBtn = Instance.new("TextButton")
+PlayBtn.Size = UDim2.new(0.43, 0, 0, 35)
+PlayBtn.Position = UDim2.new(0.05, 0, 0.42, 0)
+PlayBtn.Text = "▶ PHÁT"
+PlayBtn.BackgroundColor3 = Color3.fromRGB(46, 204, 113)
+PlayBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+PlayBtn.Font = Enum.Font.SourceSansBold
+PlayBtn.Parent = ContentHolder
+Instance.new("UICorner", PlayBtn)
+
+local LoopBtn = Instance.new("TextButton")
+LoopBtn.Size = UDim2.new(0.43, 0, 0, 35)
+LoopBtn.Position = UDim2.new(0.52, 0, 0.42, 0)
+LoopBtn.Text = "🔁 LẶP: TẮT"
+LoopBtn.BackgroundColor3 = Color3.fromRGB(127, 140, 141)
+LoopBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+LoopBtn.Font = Enum.Font.SourceSansBold
+LoopBtn.Parent = ContentHolder
+Instance.new("UICorner", LoopBtn)
+
+-- Danh sách phát (Playlist Scroll Frame)
+local PlaylistLabel = Instance.new("TextLabel")
+PlaylistLabel.Size = UDim2.new(0.9, 0, 0, 25)
+PlaylistLabel.Position = UDim2.new(0.05, 0, 0.51, 0)
+PlaylistLabel.Text = "📜 DANH SÁCH PHÁT (Bấm để phát):"
+PlaylistLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+PlaylistLabel.TextXAlignment = Enum.TextXAlignment.Left
+PlaylistLabel.Font = Enum.Font.SourceSansBold
+PlaylistLabel.BackgroundTransparency = 1
+PlaylistLabel.Parent = ContentHolder
+
+local PlaylistScroll = Instance.new("ScrollingFrame")
+PlaylistScroll.Size = UDim2.new(0.9, 0, 0, 140)
+PlaylistScroll.Position = UDim2.new(0.05, 0, 0.58, 0)
+PlaylistScroll.BackgroundColor3 = Color3.fromRGB(28, 28, 35)
+PlaylistScroll.ScrollBarThickness = 4
+PlaylistScroll.Parent = ContentHolder
+Instance.new("UICorner", PlaylistScroll)
+
+local UIListLayout = Instance.new("UIListLayout")
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+UIListLayout.Padding = UDim.new(0, 5)
+UIListLayout.Parent = PlaylistScroll
+
+-- Hàm định dạng thời gian giây -> mm:ss
+local function formatTime(seconds)
+    local mins = math.floor(seconds / 60)
+    local secs = math.floor(seconds % 60)
+    return string.format("%02d:%02d", mins, secs)
+end
+
+-- Hàm cập nhật giao diện danh sách phát
+local function updatePlaylistUI()
+    for _, child in pairs(PlaylistScroll:GetChildren()) do
+        if child:IsA("TextButton") then
+            child:Destroy()
+        end
+    end
+    
+    for i, item in ipairs(playlist) do
+        local songBtn = Instance.new("TextButton")
+        songBtn.Size = UDim2.new(1, 0, 0, 30)
+        songBtn.Text = "  " .. item.name
+        songBtn.TextXAlignment = Enum.TextXAlignment.Left
+        songBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        songBtn.BackgroundColor3 = (currentPlayingFile == item.name) and Color3.fromRGB(41, 128, 185) or Color3.fromRGB(45, 45, 55)
+        songBtn.Font = Enum.Font.SourceSans
+        songBtn.Parent = PlaylistScroll
+        Instance.new("UICorner", songBtn)
+        
+        songBtn.MouseButton1Click:Connect(function()
+            if isfile and isfile(item.name) and getcustomasset then
+                currentPlayingFile = item.name
+                soundInstance.SoundId = getcustomasset(item.name)
+                soundInstance:Play()
+                PlayBtn.Text = "⏸ DỪNG"
+                PlayBtn.BackgroundColor3 = Color3.fromRGB(231, 76, 60)
+                NowPlaying.Text = "Đang phát: " .. item.name
+                updatePlaylistUI()
+            else
+                warn("File chưa có trên máy, hãy tải trước!")
+            end
+        end)
+    end
+end
+
+-- Xử lý Tải File
+DownloadBtn.MouseButton1Click:Connect(function()
+    local url = UrlBox.Text
+    local fileName = NameBox.Text
+    if url == "" or fileName == "" then return end
+    
+    DownloadBtn.Text = "⏳ ĐANG TẢI..."
+    local success, response = pcall(function() return game:HttpGet(url) end)
+    
+    if success and writefile then
+        writefile(fileName, response)
+        DownloadBtn.Text = "✅ TẢI THÀNH CÔNG!"
+        
+        -- Thêm vào playlist nếu chưa có
+        local exists = false
+        for _, song in ipairs(playlist) do
+            if song.name == fileName then exists = true end
+        end
+        if not exists then
+            table.insert(playlist, {name = fileName, url = url})
+        end
+        updatePlaylistUI()
+        
+        task.wait(2)
+        DownloadBtn.Text = "📥 TẢI & THÊM VÀO PLAYLIST"
+    else
+        DownloadBtn.Text = "❌ LỖI TẢI FILE!"
+        task.wait(2)
+        DownloadBtn.Text = "📥 TẢI & THÊM VÀO PLAYLIST"
+    end
+end)
+
+-- Xử lý Play / Pause
+PlayBtn.MouseButton1Click:Connect(function()
+    if soundInstance.IsPlaying then
+        soundInstance:Pause()
+        PlayBtn.Text = "▶ PHÁT"
+        PlayBtn.BackgroundColor3 = Color3.fromRGB(46, 204, 113)
+    else
+        if soundInstance.SoundId ~= "" then
+            soundInstance:Resume()
+            PlayBtn.Text = "⏸ DỪNG"
+            PlayBtn.BackgroundColor3 = Color3.fromRGB(231, 76, 60)
+        end
+    end
+end)
+
+-- Xử lý Lặp lại (Loop)
+local isLooping = false
+LoopBtn.MouseButton1Click:Connect(function()
+    isLooping = not isLooping
+    soundInstance.Looped = isLooping
+    if isLooping then
+        LoopBtn.Text = "🔁 LẶP: BẬT"
+        LoopBtn.BackgroundColor3 = Color3.fromRGB(46, 204, 113)
+    else
+        LoopBtn.Text = "🔁 LẶP: TẮT"
+        LoopBtn.BackgroundColor3 = Color3.fromRGB(127, 140, 141)
+    end
+end)
+
+-- Xử lý Tua nhạc bằng cách bấm vào thanh Seek Bar
+SeekBarBg.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        if soundInstance.TimeLength > 0 then
+            local pos = math.clamp((input.Position.X - SeekBarBg.AbsolutePosition.X) / SeekBarBg.AbsoluteSize.X, 0, 1)
+            soundInstance.TimePosition = pos * soundInstance.TimeLength
+        end
+    end
+end)
+
+-- Cập nhật thanh tua và thời gian liên tục theo bài hát
+RunService.RenderStepped:Connect(function()
+    if soundInstance.IsPlaying and soundInstance.TimeLength > 0 then
+        local progress = soundInstance.TimePosition / soundInstance.TimeLength
+        SeekBarFill.Size = UDim2.new(progress, 0, 1, 0)
+        TimeLabel.Text = formatTime(soundInstance.TimePosition) .. " / " .. formatTime(soundInstance.TimeLength)
+    end
+end)
+
+-- Xử lý Thu gọn / Mở rộng GUI
+local isMinimized = false
+MinBtn.MouseButton1Click:Connect(function()
+    isMinimized = not isMinimized
+    if isMinimized then
+        ContentHolder.Visible = false
+        Frame.Size = UDim2.new(0, 360, 0, 35)
+        MinBtn.Text = "+"
+    else
+        ContentHolder.Visible = true
+        Frame.Size = UDim2.new(0, 360, 0, 420)
+        MinBtn.Text = "-"
+    end
+end)
+
+-- Khởi chạy danh sách mẫu ban đầu
+updatePlaylistUI()
+			
+   end,
+})
