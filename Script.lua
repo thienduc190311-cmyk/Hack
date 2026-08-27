@@ -1,7 +1,44 @@
---[[
-	WARNING: Heads up! This script has not been verified by ScriptBlox. Use at your own risk!
-]]
-_G.FriendColor = Color3.fromRGB(0, 0, 255)
+-- 1. Tải thư viện Rayfield UI
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+-- 2. Tạo Cửa Sổ Chính (Window)
+local Window = Rayfield:CreateWindow({
+   Name = "My Script",
+   LoadingTitle = "Đang xuất....",
+   LoadingSubtitle = "by thienduc",
+   ConfigurationSaving = { Enabled = false }
+})
+
+-- 3. Tạo Tab Chứa Script (Bạn có thể tạo thêm Tab nếu muốn)
+local MainTab = Window:CreateTab("Tổng Hợp Script", 3710035739) -- ID Icon
+
+------------------------------------------------------------------
+-- 4. THÊM CÁC NÚT CHẠY SCRIPT VÀO ĐÂY
+------------------------------------------------------------------
+
+-- Script số 1
+MainTab:CreateButton({
+   Name = "Script Mẫu 1 (Thông báo)",
+   Callback = function()
+       -- Dán code Lua hoặc loadstring của script 1 vào đây:
+       print("Đã bật Script 1!")
+   end,
+})
+
+-- Script số 2 (Ví dụ gọi script khác qua loadstring)
+MainTab:CreateButton({
+   Name = "Script Mẫu 2 (Gắn link loadstring)",
+   Callback = function()
+       -- Dán đoạn loadstring của script bạn tìm được vào giữa hàm này:
+       -- loadstring(game:HttpGet("LINK_SCRIPT_TAI_DAY"))()
+   end,
+})
+
+-- Script số 3
+MainTab:CreateButton({
+   Name = "hack esp",
+   Callback = function()
+       _G.FriendColor = Color3.fromRGB(0, 0, 255)
 _G.EnemyColor = Color3.fromRGB(255, 0, 0)
 _G.UseTeamColor = true
 
@@ -151,3 +188,6 @@ while task.wait() do
         end
     end
 end
+
+   end,
+})
