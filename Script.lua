@@ -10,7 +10,7 @@ local Window = Rayfield:CreateWindow({
 })
 
 -- 3. Tạo Tab Chứa Script (Bạn có thể tạo thêm Tab nếu muốn)
-local MainTab = Window:CreateTab("Tổng Hợp Script", 3710035739) -- ID Icon
+local MainTab = Window:CreateTab("Tổng Hợp Script", 4483362458) -- ID Icon
 
 ------------------------------------------------------------------
 -- 4. THÊM CÁC NÚT CHẠY SCRIPT VÀO ĐÂY
