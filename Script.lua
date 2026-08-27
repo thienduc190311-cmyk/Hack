@@ -34,25 +34,23 @@ local Settings = {
     TeamCheck = true,
     WallCheck = true,
     FOV = 150,
-    ShowFOV = true,
-    Smoothness = 0.2 -- Độ mượt khi nhắm (0.1 -> 1)
+    ShowFOV = true
 }
 
--- 1. Tạo Vòng Tròn FOV ở Tâm Màn Hình (Sử dụng Drawing API)
+-- 1. Tạo Vòng Tròn FOV ở Tâm Màn Hình (Drawing API)
 local FOVCircle = Drawing.new("Circle")
 FOVCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
 FOVCircle.Radius = Settings.FOV
 FOVCircle.Filled = false
-FOVCircle.Color = Color3.fromRGB(0, 255, 150)
+FOVCircle.Color = Color3.fromRGB(255, 50, 50)
 FOVCircle.Thickness = 1.5
 FOVCircle.Visible = Settings.ShowFOV
 
--- Cập nhật vị trí tâm vòng tròn khi đổi kích thước màn hình
 Camera:GetPropertyChangedSignal("ViewportSize"):Connect(function()
     FOVCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
 end)
 
--- 2. Tạo GUI UI
+-- 2. Tạo Giao Diện GUI
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "AimbotGui"
 ScreenGui.ResetOnSpawn = false
@@ -72,14 +70,14 @@ MainFrame.Parent = ScreenGui
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(0.75, 0, 0, 30)
 Title.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-Title.Text = "  Aimbot Settings"
+Title.Text = "  Aimbot Settings (Instant)"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.TextSize = 13
 Title.TextXAlignment = Enum.TextXAlignment.Left
 Title.Font = Enum.Font.SourceSansBold
 Title.Parent = MainFrame
 
--- Nút Thu Gọn / Mở Rộng GUI
+-- Nút Thu Gọn / Mở Rộng
 local MinimizeBtn = Instance.new("TextButton")
 MinimizeBtn.Size = UDim2.new(0.25, 0, 0, 30)
 MinimizeBtn.Position = UDim2.new(0.75, 0, 0, 0)
@@ -102,7 +100,6 @@ MinimizeBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- Hàm tiện ích tạo nút bấm
 local function CreateButton(text, pos, callback)
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(0.9, 0, 0, 28)
@@ -119,7 +116,7 @@ local function CreateButton(text, pos, callback)
     return btn
 end
 
--- Các nút chức năng
+-- Controls
 CreateButton("Aimbot: OFF", UDim2.new(0.05, 0, 0.12, 0), function(btn)
     Settings.Enabled = not Settings.Enabled
     btn.Text = Settings.Enabled and "Aimbot: ON" or "Aimbot: OFF"
@@ -155,7 +152,7 @@ CreateButton("Hiện Vòng FOV: ON", UDim2.new(0.05, 0, 0.56, 0), function(btn)
     btn.Text = Settings.ShowFOV and "Hiện Vòng FOV: ON" or "Hiện Vòng FOV: OFF"
 end)
 
--- Nút chỉnh kích thước vòng FOV (+ / -)
+-- Tùy chỉnh FOV
 local FOVControlFrame = Instance.new("Frame")
 FOVControlFrame.Size = UDim2.new(0.9, 0, 0, 28)
 FOVControlFrame.Position = UDim2.new(0.05, 0, 0.67, 0)
@@ -181,7 +178,7 @@ FOVLabel.TextSize = 12
 FOVLabel.Parent = FOVControlFrame
 
 local FOVPlus = Instance.new("TextButton")
-FOVPlus.Size = UDim2.new(0.2, 0, 1, 0)
+FOVPlus.Size = UDim2.new(0.8, 0, 1, 0)
 FOVPlus.Position = UDim2.new(0.8, 0, 0, 0)
 FOVPlus.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
 FOVPlus.Text = "+"
@@ -204,7 +201,7 @@ FOVPlus.MouseButton1Click:Connect(function()
     end
 end)
 
--- 3. Logic Kiểm Tra Vật Chắn (Wall Check)
+-- 3. Wall Check (Kiểm tra vật cản)
 local function IsVisible(targetPart, targetCharacter)
     if not Settings.WallCheck then return true end
     
@@ -221,7 +218,7 @@ local function IsVisible(targetPart, targetCharacter)
     return result == nil
 end
 
--- 4. Logic Tìm Mục Tiêu
+-- 4. Tìm mục tiêu trong vòng FOV
 local function GetClosestTarget()
     local closestPlayer = nil
     local shortestDistance = Settings.FOV
@@ -252,13 +249,13 @@ local function GetClosestTarget()
     return closestPlayer
 end
 
--- 5. Vòng Lặp Aimbot
+-- 5. Vòng Lặp Aim Tức Thì (Instant Aim / Snap Aim)
 RunService.RenderStepped:Connect(function()
     if Settings.Enabled then
         local target = GetClosestTarget()
         if target then
-            local targetCFrame = CFrame.new(Camera.CFrame.Position, target.Position)
-            Camera.CFrame = Camera.CFrame:Lerp(targetCFrame, Settings.Smoothness)
+            -- Gán trực tiếp CFrame góc nhìn vào thẳng vị trí mục tiêu ngay lập tức
+            Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Position)
         end
     end
 end)
