@@ -18,19 +18,180 @@ local MainTab = Window:CreateTab("Tổng Hợp Script", 4483362458) -- ID Icon
 
 -- Script số 1
 MainTab:CreateButton({
-   Name = "Script Mẫu 1 (Thông báo)",
+   Name = "aimbot mod",
    Callback = function()
-       -- Dán code Lua hoặc loadstring của script 1 vào đây:
+       -- Dat script nay trong StarterPlayerScripts hoac StarterGui
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+-- Biến Cấu Hình (Settings)
+local Settings = {
+    Enabled = false,
+    TargetPart = "Head", -- "Head", "HumanoidRootPart" (Thân), "RightLowerLeg" (Chân)
+    TeamCheck = true,
+    WallCheck = true,
+    FOV = 150,
+    Smoothness = 0.2 -- Độ mượt khi nhắm (0.1 -> 1)
+}
+
+-- Tạo GUI UI
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "AimbotGui"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 220, 0, 260)
+MainFrame.Position = UDim2.new(0.05, 0, 0.3, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = ScreenGui
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, 0, 0, 30)
+Title.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+Title.Text = "Aimbot Settings (Bật/Tắt: K)"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 13
+Title.Font = Enum.Font.SourceSansBold
+Title.Parent = MainFrame
+
+-- Hàm tiện ích tạo nút
+local function CreateButton(text, pos, callback)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0.9, 0, 0, 30)
+    btn.Position = pos
+    btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.Text = text
+    btn.Font = Enum.Font.SourceSans
+    btn.TextSize = 14
+    btn.Parent = MainFrame
+    btn.MouseButton1Click:Connect(function()
+        callback(btn)
+    end)
+    return btn
+end
+
+-- 1. Nút Bật/Tắt Aimbot
+local ToggleBtn = CreateButton("Aimbot: OFF", UDim2.new(0.05, 0, 0.15, 0), function(btn)
+    Settings.Enabled = not Settings.Enabled
+    btn.Text = Settings.Enabled and "Aimbot: ON" or "Aimbot: OFF"
+    btn.BackgroundColor3 = Settings.Enabled and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(50, 50, 50)
+end)
+
+-- 2. Nút Chọn Vị Trí Aim (Đầu / Thân / Chân)
+local PartBtn = CreateButton("Vị Trí: Đầu", UDim2.new(0.05, 0, 0.3, 0), function(btn)
+    if Settings.TargetPart == "Head" then
+        Settings.TargetPart = "HumanoidRootPart"
+        btn.Text = "Vị Trí: Thân"
+    elseif Settings.TargetPart == "HumanoidRootPart" then
+        Settings.TargetPart = "RightLowerLeg"
+        btn.Text = "Vị Trí: Chân"
+    else
+        Settings.TargetPart = "Head"
+        btn.Text = "Vị Trí: Đầu"
+    end
+end)
+
+-- 3. Nút Team Check
+local TeamBtn = CreateButton("Team Check: ON", UDim2.new(0.05, 0, 0.45, 0), function(btn)
+    Settings.TeamCheck = not Settings.TeamCheck
+    btn.Text = Settings.TeamCheck and "Team Check: ON" or "Team Check: OFF"
+end)
+
+-- 4. Nút Wall Check (Nhận diện vật chắn)
+local WallBtn = CreateButton("Wall Check: ON", UDim2.new(0.05, 0, 0.6, 0), function(btn)
+    Settings.WallCheck = not Settings.WallCheck
+    btn.Text = Settings.WallCheck and "Wall Check: ON" or "Wall Check: OFF"
+end)
+
+-- Phím tắt bật/tắt ẩn hiện GUI (Phím K)
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if not gameProcessed and input.KeyCode == Enum.KeyCode.K then
+        MainFrame.Visible = not MainFrame.Visible
+    end
+end)
+
+-- Hàm kiểm tra vật chắn (Wall Check)
+local function IsVisible(targetPart, targetCharacter)
+    if not Settings.WallCheck then return true end
+    
+    local origin = Camera.CFrame.Position
+    local destination = targetPart.Position
+    local direction = destination - origin
+
+    local raycastParams = RaycastParams.new()
+    raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+    -- Bỏ qua bản thân và nhân vật mục tiêu để kiểm tra xem có tường/vật cản ở giữa không
+    raycastParams.FilterDescendantsInstances = {LocalPlayer.Character, targetCharacter}
+    raycastParams.IgnoreWater = true
+
+    local result = workspace:Raycast(origin, direction, raycastParams)
+    -- Nếu không chạm vào gì ở giữa -> Không bị chắn
+    return result == nil
+end
+
+-- Hàm tìm mục tiêu gần tâm màn hình nhất
+local function GetClosestTarget()
+    local closestPlayer = nil
+    local shortestDistance = Settings.FOV
+
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Humanoid") then
+            -- Kiểm tra máu
+            if player.Character.Humanoid.Health > 0 then
+                -- Kiểm tra Team Check
+                if not Settings.TeamCheck or player.Team ~= LocalPlayer.Team then
+                    local targetPart = player.Character:FindFirstChild(Settings.TargetPart)
+                    if targetPart then
+                        local screenPos, onScreen = Camera:WorldToViewportPoint(targetPart.Position)
+                        if onScreen then
+                            local mousePos = UserInputService:GetMouseLocation()
+                            local distance = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
+
+                            -- Kiểm tra khoảng cách nằm trong FOV và không bị tường chắn
+                            if distance < shortestDistance then
+                                if IsVisible(targetPart, player.Character) then
+                                    shortestDistance = distance
+                                    closestPlayer = targetPart
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+    return closestPlayer
+end
+
+-- Vòng lặp Aimbot (Chạy mỗi frame)
+RunService.RenderStepped:Connect(function()
+    if Settings.Enabled then
+        local target = GetClosestTarget()
+        if target then
+            -- Nhắm mượt (Interpolation) vào mục tiêu
+            local targetCFrame = CFrame.new(Camera.CFrame.Position, target.Position)
+            Camera.CFrame = Camera.CFrame:Lerp(targetCFrame, Settings.Smoothness)
+        end
+    end
+end)
        print("Đã bật Script 1!")
    end,
 })
 
 -- Script số 2 (Ví dụ gọi script khác qua loadstring)
 MainTab:CreateButton({
-   Name = "Script Mẫu 2 (Gắn link loadstring)",
+   Name = "infinyty idle",
    Callback = function()
-       -- Dán đoạn loadstring của script bạn tìm được vào giữa hàm này:
-       -- loadstring(game:HttpGet("LINK_SCRIPT_TAI_DAY"))()
+       loadstring(game:HttpGet('https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source'))()
    end,
 })
 
