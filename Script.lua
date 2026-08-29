@@ -11,7 +11,7 @@ local Window = Rayfield:CreateWindow({
 
 -- 3. Tạo Tab Chứa Script (Bạn có thể tạo thêm Tab nếu muốn)
 local MainTab = Window:CreateTab("Tổng Hợp Script", 4483362458) -- ID Icon
-
+local Playerhack= Window:CreateTab("hack cơ bản",4483362458)
 ------------------------------------------------------------------
 -- 4. THÊM CÁC NÚT CHẠY SCRIPT VÀO ĐÂY
 ------------------------------------------------------------------
@@ -766,3 +766,59 @@ updatePlaylistUI()
 			
    end,
 })
+Playerhack:CreateSlider({
+   Name = "Tốc Độ Chạy (WalkSpeed)",
+   Range = {16, 300},
+   Increment = 1,
+   Suffix = " Speed",
+   CurrentValue = 16,
+   Flag = "SpeedSlider",
+   Callback = function(Value)
+       local player = game.Players.LocalPlayer
+       if player.Character and player.Character:FindFirstChild("Humanoid") then
+           player.Character.Humanoid.WalkSpeed = Value
+       end
+   end,
+})
+
+-- B. CHỈNH ĐỘ CAO NHẢY (JUMPPOWER)
+Playerhack:CreateSlider({
+   Name = "Độ Cao Nhảy (JumpPower)",
+   Range = {50, 500},
+   Increment = 5,
+   Suffix = " Jump",
+   CurrentValue = 50,
+   Flag = "JumpSlider",
+   Callback = function(Value)
+       local player = game.Players.LocalPlayer
+       if player.Character and player.Character:FindFirstChild("Humanoid") then
+           player.Character.Humanoid.UseJumpPower = true
+           player.Character.Humanoid.JumpPower = Value
+       end
+   end,
+})
+
+-- C. BẬT/TẮT ĐI XUYÊN TƯỜNG (NOCLIP)
+local NoclipEnabled = false
+Playerhack:CreateToggle({
+   Name = "Đi Xuyên Tường (Noclip)",
+   CurrentValue = false,
+   Flag = "NoclipToggle",
+   Callback = function(Value)
+       NoclipEnabled = Value
+   end,
+})
+
+-- Vòng lặp giữ trạng thái Noclip khi bật
+game:GetService("RunService").Stepped:Connect(function()
+   if NoclipEnabled then
+       local player = game.Players.LocalPlayer
+       if player.Character then
+           for _, part in pairs(player.Character:GetDescendants()) do
+               if part:IsA("BasePart") then
+                   part.CanCollide = false
+               end
+           end
+       end
+   end
+end)
