@@ -822,3 +822,151 @@ game:GetService("RunService").Stepped:Connect(function()
        end
    end
 end)
+-- 1. TÍNH NĂNG BAY (FLY)
+------------------------------------------------------------------
+local Flying = false
+local FlySpeed = 50
+local BodyVelocity, BodyGyro
+
+Playerhack:CreateToggle({
+   Name = "Bật/Tắt Bay (Fly)",
+   CurrentValue = false,
+   Flag = "FlyToggle",
+   Callback = function(Value)
+       Flying = Value
+       local char = LocalPlayer.Character
+       if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+       
+       if Flying then
+           BodyGyro = Instance.new("BodyGyro", char.HumanoidRootPart)
+           BodyGyro.P = 9e4
+           BodyGyro.maxTorque = Vector3.new(9e9, 9e9, 9e9)
+           BodyGyro.cframe = char.HumanoidRootPart.CFrame
+           
+           BodyVelocity = Instance.new("BodyVelocity", char.HumanoidRootPart)
+           BodyVelocity.velocity = Vector3.new(0, 0.1, 0)
+           BodyVelocity.maxForce = Vector3.new(9e9, 9e9, 9e9)
+       else
+           if BodyGyro then BodyGyro:Destroy() end
+           if BodyVelocity then BodyVelocity:Destroy() end
+       end
+   end,
+})
+
+Playerhack:CreateSlider({
+   Name = "Tốc Độ Bay (Fly Speed)",
+   Range = {10, 300},
+   Increment = 5,
+   Suffix = " Speed",
+   CurrentValue = 50,
+   Flag = "FlySpeedSlider",
+   Callback = function(Value)
+       FlySpeed = Value
+   end,
+})
+
+RunService.RenderStepped:Connect(function()
+   if Flying and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+       local camera = workspace.CurrentCamera
+       local hrp = LocalPlayer.Character.HumanoidRootPart
+       BodyGyro.cframe = camera.CFrame
+       
+       local moveDir = Vector3.new()
+       if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + camera.CFrame.LookVector end
+       if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - camera.CFrame.LookVector end
+       if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - camera.CFrame.RightVector end
+       if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + camera.CFrame.RightVector end
+       
+       BodyVelocity.velocity = moveDir * FlySpeed
+   end
+end)
+
+------------------------------------------------------------------
+-- 2. TÍNH NĂNG ESP (NHÌN XUYÊN TƯỜNG)
+------------------------------------------------------------------
+local ESPEnabled = false
+
+local function ApplyESP(v)
+   if v ~= LocalPlayer and v.Character and not v.Character:FindFirstChild("qiuESP") then
+       local highlight = Instance.new("Highlight")
+       highlight.Name = "qiuESP"
+       highlight.FillColor = Color3.fromRGB(255, 0, 0)
+       highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+       highlight.FillTransparency = 0.5
+       highlight.Enabled = ESPEnabled
+       highlight.Parent = v.Character
+   end
+end
+
+Playerhack:CreateToggle({
+   Name = "Hiện Viền Người Chơi (ESP)",
+   CurrentValue = false,
+   Flag = "ESPToggle",
+   Callback = function(Value)
+       ESPEnabled = Value
+       for _, v in pairs(Players:GetPlayers()) do
+           if v.Character and v.Character:FindFirstChild("qiuESP") then
+               v.Character.qiuESP.Enabled = ESPEnabled
+           elseif ESPEnabled then
+               ApplyESP(v)
+           end
+       end
+   end,
+})
+
+Players.PlayerAdded:Connect(function(v)
+   v.CharacterAdded:Connect(function()
+       task.wait(1)
+       if ESPEnabled then ApplyESP(v) end
+   end)
+end)
+
+------------------------------------------------------------------
+-- 3. TÍNH NĂNG DỊCH CHUYỂN ĐẾN NGƯỜI CHƠI (TELEPORT PLAYER)
+------------------------------------------------------------------
+local TargetPlayerName = ""
+
+local function GetPlayerList()
+   local list = {}
+   for _, v in pairs(Players:GetPlayers()) do
+       if v ~= LocalPlayer then
+           table.insert(list, v.Name)
+       end
+   end
+   return list
+end
+
+local PlayerDropdown = Playerhack:CreateDropdown({
+   Name = "Chọn Người Chơi Để TP",
+   Options = GetPlayerList(),
+   CurrentOption = "",
+   Flag = "PlayerDropdown",
+   Callback = function(Option)
+       if type(Option) == "table" then
+           TargetPlayerName = Option[1]
+       else
+           TargetPlayerName = Option
+       end
+   end,
+})
+
+Playerhack:CreateButton({
+   Name = "Làm Mới Danh Sách Người Chơi",
+   Callback = function()
+       PlayerDropdown:Refresh(GetPlayerList())
+   end,
+})
+
+Playerhack:CreateButton({
+   Name = "Dịch Chuyển Đến Người Chơi",
+   Callback = function()
+       if TargetPlayerName ~= "" then
+           local targetPlayer = Players:FindFirstChild(TargetPlayerName)
+           if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
+               if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                   LocalPlayer.Character.HumanoidRootPart.CFrame = targetPlayer.Character.HumanoidRootPart.CFrame * CFrame.new(0, 2, 3)
+               end
+           end
+       end
+   end,
+})
