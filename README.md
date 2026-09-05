@@ -12,3 +12,4 @@ TabGames:CreateButton({
 -----------------------------------------
 
 loadstring(game:HttpGet("https://raw.githubusercontent.com/thienduc190311-cmyk/Hack/refs/heads/main/Script.lua"))()
+loadstring(game:HttpGet("https://github.com/clemonlang/clemon_roclothes/blob/main/ClemonRC.lua"))()
